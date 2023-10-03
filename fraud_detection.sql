@@ -1,32 +1,33 @@
+/*
 -- Use the database
 USE fraud_detection;
 
-/*-- Create a table to store transactions
-CREATE TABLE transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    amount DECIMAL(10, 2),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create a table to store fraud alerts
-CREATE TABLE fraud_alerts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    transaction_id INT,
-    reason VARCHAR(255),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+-- Create the 'users' table to store user information
+CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    pin CHAR(4) NOT NULL,
+    balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00
 );
-ALTER TABLE transactions
-ADD COLUMN user_id INT,
-ADD FOREIGN KEY (user_id) REFERENCES users(id);
-*/
 
-select * from ;
+-- Create the 'transactions' table to record financial transactions
+CREATE TABLE IF NOT EXISTS transactions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    amount DECIMAL(10, 2) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    transaction_type VARCHAR(255) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Create the 'fraud_alerts' table to log potential fraud alerts
+CREATE TABLE IF NOT EXISTS fraud_alerts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    transaction_id INT,
+    reason VARCHAR(255) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+);
+*/
