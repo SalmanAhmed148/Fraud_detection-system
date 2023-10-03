@@ -67,60 +67,56 @@ def withdrawal(user_id, amount):
 
     print("Withdrawal completed successfully.")
 
+def view_transaction(user_id):
+    cursor = db.cursor()
+
+    # Retrieve and display the user's transaction history
+    cursor.execute("SELECT id, amount, timestamp, transaction_type FROM transactions WHERE user_id = %s", (user_id,))
+    transactions = cursor.fetchall()
+
+    if not transactions:
+        print("No transaction history found.")
+    else:
+        print("Transaction History:")
+        print("ID\tAmount\tTimestamp\tTransaction Type")
+        for transaction in transactions:
+            print(f"{transaction[0]}\t${transaction[1]:.2f}\t{transaction[2]}\t{transaction[3]}")
+
 def make_transaction(user_id):
     while True:
-        print("\nMake Transaction:")
+        print("\nTransaction Options:")
         print("1. Deposit")
         print("2. Withdrawal")
         print("3. Back to Main Menu")
-        choice = input("Select a transaction type: ")
+        choice = input("Select a transaction option: ")
 
         if choice == "1":
             amount = float(input("Enter the deposit amount: "))
-            deposit(user_id, amount)
+            if amount <= 0:
+                print("Invalid amount. Please enter a positive amount.")
+            else:
+                deposit(user_id, amount)
         elif choice == "2":
             amount = float(input("Enter the withdrawal amount: "))
-            withdrawal(user_id, amount)
+            if amount <= 0:
+                print("Invalid amount. Please enter a positive amount.")
+            else:
+                withdrawal(user_id, amount)
         elif choice == "3":
             break
         else:
-            print("Invalid option. Please select a valid transaction type.")
+            print("Invalid option. Please select a valid transaction option.")
 
-def send_money(sender_id, receiver_id, amount):
-                cursor = db.cursor()
 
-                # Check if sender and receiver exist
-                cursor.execute("SELECT id FROM users WHERE id = %s OR id = %s", (sender_id, receiver_id))
-                existing_users = cursor.fetchall()
+def track_longitude_latitude(user_id, longitude, latitude):
+    cursor = db.cursor()
 
-                if len(existing_users) != 2:
-                    print("Sender or receiver not found.")
-                    return
+    # Insert longitude and latitude into a new table (for illustration purposes)
+    insert_location = "INSERT INTO location_data (user_id, longitude, latitude) VALUES (%s, %s, %s)"
+    cursor.execute(insert_location, (user_id, longitude, latitude))
+    db.commit()
 
-                # Ensure the sender has enough balance
-                cursor.execute("SELECT balance FROM users WHERE id = %s", (sender_id,))
-                sender_balance = cursor.fetchone()[0]
-
-                if sender_balance < amount:
-                    print("Insufficient balance.")
-                    return
-
-                # Check for potential fraud
-                if amount > 1000.00:  # Adjust the threshold as needed
-                    # Log a fraud alert
-                    insert_alert = "INSERT INTO fraud_alerts (user_id, transaction_id, reason) VALUES (%s, %s, %s)"
-                    cursor.execute(insert_alert, (
-                    sender_id, 0, "Transaction exceeded threshold"))  # Adjust the transaction_id as needed
-                    db.commit()
-                    print("Potential fraud transaction detected. Alert logged.")
-
-                # Perform the transaction
-                cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (amount, sender_id))
-                cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (amount, receiver_id))
-                db.commit()
-
-                print("Transaction completed successfully.")
-
+    print("Longitude and latitude data recorded.")
 
 def user_profile(user_id):
     while True:
@@ -157,6 +153,7 @@ def user_profile(user_id):
                 print("PIN updated successfully.")
             else:
                 print("Incorrect PIN. Access denied.")
+            pass
         elif choice == "3":
             # Change Email
             pin = input("Enter your 4-digit PIN: ")
@@ -169,6 +166,7 @@ def user_profile(user_id):
                 print("Email address updated successfully.")
             else:
                 print("Incorrect PIN. Access denied.")
+            pass
         elif choice == "4":
             # Change Name (Username)
             pin = input("Enter your 4-digit PIN: ")
@@ -181,10 +179,47 @@ def user_profile(user_id):
                 print("Username updated successfully.")
             else:
                 print("Incorrect PIN. Access denied.")
+            pass
         elif choice == "5":
             break
         else:
             print("Invalid option. Please select a valid option.")
+
+def send_money(sender_id, receiver_id, amount):
+    cursor = db.cursor()
+
+    # Check if sender and receiver exist
+    cursor.execute("SELECT id FROM users WHERE id = %s", (sender_id,))
+    sender_exists = cursor.fetchone()
+    cursor.execute("SELECT id FROM users WHERE id = %s", (receiver_id,))
+    receiver_exists = cursor.fetchone()
+
+    if not sender_exists or not receiver_exists:
+        print("Sender or receiver does not exist.")
+        return
+
+    # Check if sender has sufficient balance
+    cursor.execute("SELECT balance FROM users WHERE id = %s", (sender_id,))
+    sender_balance = cursor.fetchone()[0]
+
+    if sender_balance < amount:
+        print("Sender has insufficient balance.")
+        return
+
+    # Update sender's balance
+    cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (amount, sender_id))
+    # Update receiver's balance
+    cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (amount, receiver_id))
+
+    # Record the transaction
+    insert_transaction = "INSERT INTO transactions (user_id, amount, transaction_type) VALUES (%s, %s, %s)"
+    cursor.execute(insert_transaction, (sender_id, -amount, "transfer"))
+    cursor.execute(insert_transaction, (receiver_id, amount, "transfer"))
+
+    db.commit()
+
+    print("Money sent successfully.")
+
 
 def main():
     while True:
@@ -206,10 +241,10 @@ def main():
             create_user(username, email, pin)
         elif choice == "2":
             user_id = input("Enter your unique user ID: ")
-            make_transaction(user_id)
+            make_transaction(user_id)  # Placeholder function name, should be replaced with actual transaction function
         elif choice == "3":
-            user_id = int(input("Enter user ID: "))
-            view_transaction_history(user_id)
+            user_id = input("Enter your unique user ID: ")
+            view_transaction(user_id)
         elif choice == "4":
             user_id = input("Enter your unique user ID: ")
             user_profile(user_id)
